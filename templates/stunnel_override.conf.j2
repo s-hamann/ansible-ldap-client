@@ -1,0 +1,32 @@
+{# vim: filetype=systemd.jinja2 #}
+[Service]
+User={{ ldap_client_stunnel_user }}
+Group={{ ldap_client_stunnel_user }}
+PIDFile=/run/stunnel/stunnel.pid
+RuntimeDirectory=stunnel
+# Allow binding to low ports
+CapabilityBoundingSet=
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+AmbientCapabilities=
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+# Apply principle of least privilege
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+{% if ldap_client_inaccessible_paths is defined %}
+InaccessiblePaths={{ [ldap_client_inaccessible_paths] | flatten | map('quote') | join(' ') }}
+{% endif %}
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictAddressFamilies=AF_INET AF_INET6
+RestrictNamespaces=true
+RestrictRealtime=true
+SystemCallFilter=@system-service @basic-io @io-event @network-io madvise
+SystemCallFilter=~@aio @chown @keyring @memlock @privileged @resources @setuid
+SystemCallArchitectures=native
+RemoveIPC=true

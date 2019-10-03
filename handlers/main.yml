@@ -1,0 +1,15 @@
+---
+- name: 'reload service files'
+  systemd:
+    daemon_reload: true
+  when: "ansible_facts['service_mgr'] == 'systemd'"
+
+- name: 'restart stunnel'
+  service:
+    name: "{{ ldap_client_stunnel_service_name }}"
+    state: "{{ ansible_facts['is_chroot'] | ternary(omit, 'restarted') }}"
+
+- name: 'reload stunnel'
+  service:
+    name: "{{ ldap_client_stunnel_service_name }}"
+    state: "{{ ansible_facts['is_chroot'] | ternary(omit, 'reloaded') }}"

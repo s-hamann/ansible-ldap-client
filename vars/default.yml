@@ -1,0 +1,4 @@
+ldap_client_pkgs:
+  - stunnel
+ldap_client_stunnel_service_name: 'stunnel'
+ldap_client_stunnel_user: 'stunnel'

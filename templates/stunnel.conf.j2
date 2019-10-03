@@ -1,0 +1,58 @@
+{# vim: filetype=dosini.jinja2 #}
+# {{ ansible_managed }}
+{% if ansible_facts['service_mgr'] != 'systemd' %}
+{# With systemd, the unit handles switching the user #}
+setuid = {{ ldap_client_stunnel_user }}
+setgid = {{ ldap_client_stunnel_user }}
+{% endif %}
+pid = /run/stunnel/stunnel.pid
+# reduce logging verbosity
+debug = warning
+# performance tuning
+socket = l:TCP_NODELAY=1
+socket = r:TCP_NODELAY=1
+
+[ldap]
+client = yes
+accept = 127.0.0.1:389
+connect = {{ ldap_client_server }}:636
+{% if ldap_client_trusted_ca is defined %}
+CAfile = {{ ldap_client_trusted_ca }}
+{% else %}
+CApath = {{ ldap_client_ca_path }}
+{% endif %}
+# enable certificate validation
+verifyChain = yes
+{% if ldap_client_server | regex_search('^(([0-9.]{2,4}){3}[0-9]{1,3}|([a-fA-F0-9]{,4}:){,7}[a-fA-F0-9]{,4})$') %}
+# check that the server's certificate matches the IP
+checkIP = {{ ldap_client_server }}
+{% else %}
+# check that the server's certificate matches the hostname
+checkHost = {{ ldap_client_server }}
+{% endif %}
+cert = {{ ldap_client_tls_cert }}
+key = {{ ldap_client_tls_cert_key }}
+{% if _stunnel_version is version('5.50', '>=') and _openssl_version is version('1.1.0', '>=') %}
+# enforce TLSv{{ ldap_client_tls13_only | bool | ternary('1.3', '1.2') }} or newer
+sslVersionMin = TLSv{{ ldap_client_tls13_only | bool | ternary('1.3', '1.2') }}
+{% elif _openssl_version is version('1.1.0', '<') %}
+{# OpenSSL before 1.1 does not support anything better anyways #}
+# enforce TLSv1.2
+sslVersion = TLSv1.2
+{% elif ldap_client_tls13_only | bool %}
+# enforce TLSv1.3
+sslVersion = TLSv1.3
+{% else %}
+# enforce TLSv1.2 or newer
+sslVersion = all
+options = NO_SSLv2
+options = NO_SSLv3
+options = NO_TLSv1
+options = NO_TLSv1.1
+{% endif %}
+# TLSv1.2 ciphers
+ciphers = AESGCM:CHACHA20:!aNULL:!RSA:!PSK
+{% if _stunnel_version is version('5.51', '>=') and _openssl_version is version('1.1.1', '>=') %}
+# TLSv1.3 ciphers
+ciphersuites = AESGCM:CHACHA20:!aNULL:!RSA:!PSK
+{% endif %}

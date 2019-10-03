@@ -1,0 +1,83 @@
+---
+- name: 'gather os specific variables'
+  include_vars: '{{ item }}'
+  with_first_found:
+    - "{{ ansible_facts['distribution'] }}-{{ ansible_facts['distribution_major_version'] }}.yml"
+    - "{{ ansible_facts['distribution'] }}.yml"
+    - "{{ ansible_facts['os_family'] }}.yml"
+    - 'default.yml'
+
+- name: 'install required packages'
+  package:
+    name: "{{ ldap_client_pkgs }}"
+    state: present
+
+- name: "add {{ ldap_client_stunnel_user }} to extra groups"
+  user:
+    name: "{{ ldap_client_stunnel_user }}"
+    groups: "{{ ldap_client_extra_groups }}"
+    append: true
+  notify: 'restart stunnel'
+  when: "[ldap_client_extra_groups | default([])] | flatten | count"
+
+- name: "harden {{ ldap_client_stunnel_service_name }}.service"
+  block:
+    - name: "create override directory for {{ ldap_client_stunnel_service_name }}.service"
+      file:
+        path: "/etc/systemd/system/{{ ldap_client_stunnel_service_name }}.service.d/"
+        state: directory
+        owner: root
+        group: root
+        mode: 0755
+
+    - name: "install override file for {{ ldap_client_stunnel_service_name }}.service"
+      template:
+        dest: "/etc/systemd/system/{{ ldap_client_stunnel_service_name }}.service.d/override.conf"
+        src: 'stunnel_override.conf.j2'
+        owner: root
+        group: root
+        mode: 0644
+      notify:
+        - 'reload service files'
+        - 'restart stunnel'
+
+  when: "ansible_facts['service_mgr'] == 'systemd'"
+
+# If the unit file changed, reload it now.
+- meta: flush_handlers
+
+- name: 'determine stunnel version information'
+  command: 'stunnel -version'
+  changed_when: false
+  register: _stunnel_version
+
+- name: 'store stunnel version information'
+  set_fact:
+    _openssl_version: "{{ _stunnel_version.stderr | replace('  ', ' ') | regex_search('(?<=[Rr]unning with OpenSSL )[0-9a-z.]+(?= )') }}"
+    _stunnel_version: "{{ _stunnel_version.stderr | regex_search('(?<=stunnel )[0-9]\\.[0-9]+(?= )') }}"
+
+- name: 'determine system certificate directory'
+  command: 'openssl version -d'
+  changed_when: false
+  register: _openssldir
+  when: "ldap_client_trusted_ca is not defined and ldap_client_ca_path is not defined"
+
+- name: 'store system certificate directory'
+  set_fact:
+    ldap_client_ca_path: "{{ _openssldir.stdout | regex_search('(?<=OPENSSLDIR: \").*(?=\")') }}/certs"
+  when: "ldap_client_trusted_ca is not defined and ldap_client_ca_path is not defined"
+
+- name: 'configure stunnel'
+  template:
+    dest: '/etc/stunnel/stunnel.conf'
+    src: 'stunnel.conf.j2'
+    owner: root
+    group: root
+    mode: 0644
+  notify: 'reload stunnel'
+
+- name: 'enable and start stunnel'
+  service:
+    name: "{{ ldap_client_stunnel_service_name }}"
+    enabled: true
+    state: "{{ ansible_facts['is_chroot'] | ternary(omit, 'started') }}"

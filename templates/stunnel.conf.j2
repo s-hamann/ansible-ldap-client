@@ -5,7 +5,7 @@
 setuid = {{ ldap_client_stunnel_user }}
 setgid = {{ ldap_client_stunnel_user }}
 {% endif %}
-pid = /run/stunnel/stunnel.pid
+pid = /run/{{ ldap_client_stunnel_service_name }}/stunnel.pid
 # reduce logging verbosity
 debug = warning
 # performance tuning

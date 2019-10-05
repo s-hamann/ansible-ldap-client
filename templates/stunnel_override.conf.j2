@@ -2,8 +2,8 @@
 [Service]
 User={{ ldap_client_stunnel_user }}
 Group={{ ldap_client_stunnel_user }}
-PIDFile=/run/stunnel/stunnel.pid
-RuntimeDirectory=stunnel
+PIDFile=/run/{{ ldap_client_stunnel_service_name }}/stunnel.pid
+RuntimeDirectory={{ ldap_client_stunnel_service_name }}
 # Allow binding to low ports
 CapabilityBoundingSet=
 CapabilityBoundingSet=CAP_NET_BIND_SERVICE

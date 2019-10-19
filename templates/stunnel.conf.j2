@@ -39,15 +39,15 @@ sslVersionMin = TLSv{{ ldap_client_tls13_only | bool | ternary('1.3', '1.2') }}
 {# OpenSSL before 1.1 does not support anything better anyways #}
 # enforce TLSv1.2
 sslVersion = TLSv1.2
-{% elif ldap_client_tls13_only | bool %}
-# enforce TLSv1.3
-sslVersion = TLSv1.3
 {% else %}
-# enforce TLSv1.2 or newer
+# enforce TLSv{{ ldap_client_tls13_only | bool | ternary('1.3', '1.2') }} or newer
 sslVersion = all
 options = NO_SSLv3
 options = NO_TLSv1
 options = NO_TLSv1.1
+{% if ldap_client_tls13_only | bool %}
+options = NO_TLSv1.2
+{% endif %}
 {% endif %}
 # TLSv1.2 ciphers
 ciphers = AESGCM:CHACHA20:!aNULL:!RSA:!PSK

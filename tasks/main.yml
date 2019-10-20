@@ -37,14 +37,16 @@
         owner: root
         group: root
         mode: 0644
+      register: _systemd_service_file
       notify:
-        - 'ldap_client_reload_service_files'
         - 'restart stunnel'
 
-  when: "ansible_facts['service_mgr'] == 'systemd'"
+    - name: 'reload service files'
+      systemd:
+        daemon_reload: true
+      when: '_systemd_service_file is changed'
 
-# If the unit file changed, reload it now.
-- meta: flush_handlers
+  when: "ansible_facts['service_mgr'] == 'systemd'"
 
 - name: 'determine stunnel version information'
   command: 'stunnel -version'

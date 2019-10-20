@@ -1,10 +1,4 @@
 ---
-- name: 'reload service files'
-  systemd:
-    daemon_reload: true
-  listen: ldap_client_reload_service_files
-  when: "ansible_facts['service_mgr'] == 'systemd'"
-
 - name: 'restart stunnel'
   service:
     name: "{{ ldap_client_stunnel_service_name }}"

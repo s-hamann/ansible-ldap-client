@@ -51,7 +51,3 @@ options = NO_TLSv1.2
 {% endif %}
 # TLSv1.2 ciphers
 ciphers = AESGCM:CHACHA20:!aNULL:!RSA:!PSK
-{% if _stunnel_version is version('5.51', '>=') and _openssl_version is version('1.1.1', '>=') %}
-# TLSv1.3 ciphers
-ciphersuites = AESGCM:CHACHA20:!aNULL:!RSA:!PSK
-{% endif %}

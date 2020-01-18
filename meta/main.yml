@@ -1,0 +1,29 @@
+galaxy_info:
+  author: Sebastian Hamann
+  description: A simple proxy for LDAP servers that require client certificates.
+  license: MIT
+
+  min_ansible_version: 2.5
+
+  platforms:
+    - name: Gentoo
+      versions:
+        - any
+    - name: Debian
+      versions:
+        - buster
+    - name: Alpine
+      versions:
+        - any
+    - name: GenericLinux
+      versions:
+        - any
+    - name: GenericUNIX
+      versions:
+        - any
+
+  galaxy_tags:
+    - ldap
+    - security
+
+dependencies: []

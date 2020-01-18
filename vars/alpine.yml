@@ -1,0 +1,3 @@
+ldap_client_pkgs:
+  - stunnel
+  - stunnel-openrc

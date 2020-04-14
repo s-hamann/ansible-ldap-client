@@ -14,12 +14,13 @@ NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
 {% if ldap_client_inaccessible_paths is defined %}
-InaccessiblePaths={{ [ldap_client_inaccessible_paths] | flatten | map('quote') | join(' ') }}
+InaccessiblePaths={{ [ldap_client_inaccessible_paths] | flatten | unique | map('quote') | join(' ') }}
 {% endif %}
 PrivateTmp=true
 PrivateDevices=true
 ProtectKernelTunables=true
 ProtectKernelModules=true
+ProtectKernelLogs=true
 ProtectControlGroups=true
 LockPersonality=true
 MemoryDenyWriteExecute=true

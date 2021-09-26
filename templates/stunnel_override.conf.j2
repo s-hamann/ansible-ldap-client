@@ -14,7 +14,9 @@ NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
 {% if ldap_client_inaccessible_paths is defined %}
-InaccessiblePaths={{ [ldap_client_inaccessible_paths] | flatten | unique | map('quote') | join(' ') }}
+{% for path in [ldap_client_inaccessible_paths] | flatten | unique %}
+InaccessiblePaths=-{{ path | quote }}
+{% endfor %}
 {% endif %}
 PrivateTmp=true
 PrivateDevices=true
@@ -22,12 +24,16 @@ ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectKernelLogs=true
 ProtectControlGroups=true
+ProtectProc=invisible
+ProtectClock=true
+ProtectHostname=true
 LockPersonality=true
 MemoryDenyWriteExecute=true
 RestrictAddressFamilies=AF_INET AF_INET6
 RestrictNamespaces=true
 RestrictRealtime=true
+RestrictSUIDSGID=true
 SystemCallFilter=@system-service @basic-io @io-event @network-io madvise
-SystemCallFilter=~@aio @chown @keyring @memlock @privileged @resources @setuid
+SystemCallFilter=~@aio @chown @keyring @memlock @privileged @setuid
 SystemCallArchitectures=native
 RemoveIPC=true

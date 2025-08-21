@@ -53,17 +53,6 @@
         daemon_reload: true
       when: '_systemd_service_file is changed'
 
-- name: 'Determine stunnel version information'
-  ansible.builtin.command: 'stunnel -version'
-  changed_when: false
-  check_mode: false
-  register: _stunnel_version
-
-- name: 'Store stunnel version information'
-  ansible.builtin.set_fact:
-    _openssl_version: "{{ _stunnel_version.stderr | replace('  ', ' ') | ansible.builtin.regex_search('(?<=[Rr]unning with OpenSSL )[0-9a-z.]+(?= )') }}"
-    _stunnel_version: "{{ _stunnel_version.stderr | ansible.builtin.regex_search('(?<=stunnel )[0-9]\\.[0-9]+(?= )') }}"
-
 - name: 'Determine system certificate directory'
   ansible.builtin.command: 'openssl version -d'
   changed_when: false

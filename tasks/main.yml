@@ -1,89 +1,92 @@
 ---
-- name: 'gather os specific variables'
-  include_vars: "{{ vars_file }}"
+- name: 'Gather OS specific variables'
+  ansible.builtin.include_vars: "{{ vars_file }}"
   loop:
-    - 'default.yml'
+    - default.yml
     - "{{ ansible_facts['os_family'] | lower }}.yml"
     - "{{ ansible_facts['distribution'] | lower }}.yml"
     - "{{ ansible_facts['distribution'] | lower }}-{{ ansible_facts['distribution_major_version'] }}.yml"
+    - "{{ ansible_facts['distribution'] | lower }}-{{ ansible_facts['distribution_version'] | ansible.builtin.regex_search('[0-9]+\\.[0-9]+') }}.yml"
     - "{{ ansible_facts['distribution'] | lower }}-{{ ansible_facts['distribution_version'] }}.yml"
   loop_control:
     loop_var: vars_file
-  when: "(vars_file is abs and vars_file is file) or (vars_file is not abs and (role_path ~ '/vars/' ~ vars_file) is file)"
+  when: "(vars_file is ansible.builtin.abs and vars_file is ansible.builtin.file) or (vars_file is not ansible.builtin.abs and (role_path ~ '/vars/' ~ vars_file) is ansible.builtin.file)"
+  tags:
+    - always
 
-- name: 'install required packages'
-  package:
+- name: 'Install required packages'
+  ansible.builtin.package:
     name: "{{ ldap_client_pkgs }}"
     state: present
 
-- name: "add {{ ldap_client_stunnel_user }} to extra groups"
-  user:
+- name: "Add {{ ldap_client_stunnel_user }} to extra groups"
+  ansible.builtin.user:
     name: "{{ ldap_client_stunnel_user }}"
     groups: "{{ ldap_client_extra_groups }}"
     append: true
-  notify: 'restart stunnel'
-  when: "[ldap_client_extra_groups | default([])] | flatten | count"
+  notify: ldap_client_restart_stunnel
+  when: "[ldap_client_extra_groups | default([])] | ansible.builtin.flatten | count"
 
-- name: "harden {{ ldap_client_stunnel_service_name }}.service"
+- name: "Harden {{ ldap_client_stunnel_service_name }}.service"
+  when: "ansible_facts['service_mgr'] == 'systemd'"
   block:
-    - name: "create override directory for {{ ldap_client_stunnel_service_name }}.service"
-      file:
+    - name: "Create override directory for {{ ldap_client_stunnel_service_name }}.service"
+      ansible.builtin.file:
         path: "/etc/systemd/system/{{ ldap_client_stunnel_service_name }}.service.d/"
         state: directory
         owner: root
         group: root
-        mode: 0755
+        mode: '0755'
 
-    - name: "install override file for {{ ldap_client_stunnel_service_name }}.service"
-      template:
+    - name: "Install override file for {{ ldap_client_stunnel_service_name }}.service"
+      ansible.builtin.template:
         dest: "/etc/systemd/system/{{ ldap_client_stunnel_service_name }}.service.d/override.conf"
-        src: 'stunnel_override.conf.j2'
+        src: stunnel_override.conf.j2
         owner: root
         group: root
-        mode: 0644
+        mode: '0644'
       register: _systemd_service_file
-      notify:
-        - 'restart stunnel'
+      notify: ldap_client_restart_stunnel
 
-    - name: 'reload service files'
-      systemd:
+    - name: 'Reload service files'
+      ansible.builtin.systemd_service:
         daemon_reload: true
       when: '_systemd_service_file is changed'
 
-  when: "ansible_facts['service_mgr'] == 'systemd'"
-
-- name: 'determine stunnel version information'
-  command: 'stunnel -version'
+- name: 'Determine stunnel version information'
+  ansible.builtin.command: 'stunnel -version'
   changed_when: false
+  check_mode: false
   register: _stunnel_version
 
-- name: 'store stunnel version information'
-  set_fact:
-    _openssl_version: "{{ _stunnel_version.stderr | replace('  ', ' ') | regex_search('(?<=[Rr]unning with OpenSSL )[0-9a-z.]+(?= )') }}"
-    _stunnel_version: "{{ _stunnel_version.stderr | regex_search('(?<=stunnel )[0-9]\\.[0-9]+(?= )') }}"
+- name: 'Store stunnel version information'
+  ansible.builtin.set_fact:
+    _openssl_version: "{{ _stunnel_version.stderr | replace('  ', ' ') | ansible.builtin.regex_search('(?<=[Rr]unning with OpenSSL )[0-9a-z.]+(?= )') }}"
+    _stunnel_version: "{{ _stunnel_version.stderr | ansible.builtin.regex_search('(?<=stunnel )[0-9]\\.[0-9]+(?= )') }}"
 
-- name: 'determine system certificate directory'
-  command: 'openssl version -d'
+- name: 'Determine system certificate directory'
+  ansible.builtin.command: 'openssl version -d'
   changed_when: false
+  check_mode: false
   register: _openssldir
   when: "ldap_client_trusted_ca is not defined and ldap_client_ca_path is not defined"
 
-- name: 'store system certificate directory'
-  set_fact:
-    ldap_client_ca_path: "{{ _openssldir.stdout | regex_search('(?<=OPENSSLDIR: \").*(?=\")') }}/certs"
+- name: 'Store system certificate directory'
+  ansible.builtin.set_fact:
+    ldap_client_ca_path: "{{ _openssldir.stdout | ansible.builtin.regex_search('(?<=OPENSSLDIR: \").*(?=\")') }}/certs"
   when: "ldap_client_trusted_ca is not defined and ldap_client_ca_path is not defined"
 
-- name: 'configure stunnel'
-  template:
+- name: 'Configure stunnel'
+  ansible.builtin.template:
     dest: '/etc/stunnel/stunnel.conf'
-    src: 'stunnel.conf.j2'
+    src: stunnel.conf.j2
     owner: root
     group: root
-    mode: 0644
-  notify: 'reload stunnel'
+    mode: '0644'
+  notify: ldap_client_reload_stunnel
 
-- name: 'enable and start stunnel'
-  service:
+- name: 'Enable and start stunnel'
+  ansible.builtin.service:
     name: "{{ ldap_client_stunnel_service_name }}"
     enabled: true
-    state: "{{ ansible_facts['is_chroot'] | ternary(omit, 'started') }}"
+    state: "{{ ansible_facts['is_chroot'] | ansible.builtin.ternary(omit, 'started') }}"

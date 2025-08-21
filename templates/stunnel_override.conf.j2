@@ -1,4 +1,5 @@
 {# vim: filetype=systemd.jinja2 #}
+{{ ansible_managed | ansible.builtin.comment }}
 [Service]
 User={{ ldap_client_stunnel_user }}
 Group={{ ldap_client_stunnel_user }}
@@ -14,8 +15,8 @@ NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
 {% if ldap_client_inaccessible_paths is defined %}
-{% for path in [ldap_client_inaccessible_paths] | flatten | unique %}
-InaccessiblePaths=-{{ path | quote }}
+{% for path in [ldap_client_inaccessible_paths] | ansible.builtin.flatten | ansible.builtin.unique %}
+InaccessiblePaths=-{{ path | ansible.builtin.quote }}
 {% endfor %}
 {% endif %}
 PrivateTmp=true

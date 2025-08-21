@@ -1,4 +1,5 @@
+---
 ldap_client_pkgs:
   - stunnel4
-ldap_client_stunnel_service_name: 'stunnel4'
-ldap_client_stunnel_user: 'stunnel4'
+ldap_client_stunnel_service_name: stunnel4
+ldap_client_stunnel_user: stunnel4

@@ -1,12 +1,12 @@
 ---
 - name: 'Restart stunnel'
   ansible.builtin.service:
-    name: "{{ ldap_client_stunnel_service_name }}"
+    name: "{{ ldap_client_stunnel_instance_service_name }}"
     state: "{{ ansible_facts['is_chroot'] | ansible.builtin.ternary(omit, 'restarted') }}"
   listen: ldap_client_restart_stunnel
 
 - name: 'Reload stunnel'
   ansible.builtin.service:
-    name: "{{ ldap_client_stunnel_service_name }}"
+    name: "{{ ldap_client_stunnel_instance_service_name }}"
     state: "{{ ansible_facts['is_chroot'] | ansible.builtin.ternary(omit, 'reloaded') }}"
   listen: ldap_client_reload_stunnel

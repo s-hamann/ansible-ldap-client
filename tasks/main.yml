@@ -27,20 +27,24 @@
   notify: ldap_client_restart_stunnel
   when: "[ldap_client_extra_groups | default([])] | ansible.builtin.flatten | count"
 
-- name: "Harden {{ ldap_client_stunnel_service_name }}.service"
+- name: 'Set stunnel service instance name'
+  ansible.builtin.set_fact:
+    ldap_client_stunnel_instance_service_name: "{{ ldap_client_stunnel_service_name ~ ('@ldap' if ansible_facts['service_mgr'] == 'systemd' else '.ldap') }}"
+
+- name: "Harden {{ ldap_client_stunnel_instance_service_name }}.service"
   when: "ansible_facts['service_mgr'] == 'systemd'"
   block:
-    - name: "Create override directory for {{ ldap_client_stunnel_service_name }}.service"
+    - name: "Create override directory for {{ ldap_client_stunnel_instance_service_name }}.service"
       ansible.builtin.file:
-        path: "/etc/systemd/system/{{ ldap_client_stunnel_service_name }}.service.d/"
+        path: "/etc/systemd/system/{{ ldap_client_stunnel_instance_service_name }}.service.d/"
         state: directory
         owner: root
         group: root
         mode: '0755'
 
-    - name: "Install override file for {{ ldap_client_stunnel_service_name }}.service"
+    - name: "Install override file for {{ ldap_client_stunnel_instance_service_name }}.service"
       ansible.builtin.template:
-        dest: "/etc/systemd/system/{{ ldap_client_stunnel_service_name }}.service.d/override.conf"
+        dest: "/etc/systemd/system/{{ ldap_client_stunnel_instance_service_name }}.service.d/override.conf"
         src: stunnel_override.conf.j2
         owner: root
         group: root
@@ -67,15 +71,24 @@
 
 - name: 'Configure stunnel'
   ansible.builtin.template:
-    dest: '/etc/stunnel/stunnel.conf'
+    dest: '/etc/stunnel/ldap.conf'
     src: stunnel.conf.j2
     owner: root
     group: root
     mode: '0644'
   notify: ldap_client_reload_stunnel
 
+- name: 'Create stunnel instance service'
+  ansible.builtin.file:
+    path: '/etc/init.d/stunnel.ldap'
+    state: link
+    owner: root
+    group: root
+    src: stunnel
+  when: "ansible_facts['service_mgr'] == 'openrc'"
+
 - name: 'Enable and start stunnel'
   ansible.builtin.service:
-    name: "{{ ldap_client_stunnel_service_name }}"
+    name: "{{ ldap_client_stunnel_instance_service_name }}"
     enabled: true
     state: "{{ ansible_facts['is_chroot'] | ansible.builtin.ternary(omit, 'started') }}"
